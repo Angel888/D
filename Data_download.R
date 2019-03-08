@@ -25,3 +25,16 @@ library(PerformanceAnalytics)
 library(PortfolioAnalytics)
 EW <- Return.portfolio(sp500return,rebalance_on = "months")
 # Create Equally Weighted Portfolio Return, a "xts" object
+
+EW_acc <- cumsum(EW)
+EW_mean <- mean(EW)
+EW_sd <- sd(EW)
+EW_median <- median(EW)
+EW_skewness <- skewness(EW)
+EW_kurtosis <- kurtosis(EW)
+sum(EW)
+library(SharpeR)
+rfr <- 0.03/12
+EW_sharpe <- as.sr(EW, c0 = rfr, ope = 12)
+EW_sharpe_test <- sr_test(EW,alternative = "two.sided",ope = 12)
+# Sharpe Ratio stuff, more study is needed
