@@ -42,3 +42,32 @@ highchart(type = "stock") %>%
   hc_title("cumulative return for first factor")
 # ------------------Above is the return for full-sample calculation----------------------
 # Need to work on back-test data later .. So tired
+
+# Below is to define a function to mimick a factor
+
+factor_return <- function(data, minwin, nexpwin, factor.no){
+  weight_factor <<- matrix(NA, nrow = 59, ncol = 30)
+  ret_factor <<- rep(NA, 59)
+  # Below is the back-test function
+  for(i in 1:nexpwin){
+    ret_pca_loop <- head(data,i + minwin)
+    pca_loop <- princomp(ret_pca_loop)
+    loading_loop <- as.matrix(pca_loop$loading)[,factor.no]
+    wf <- loading_loop * (1/sum(loading_loop))
+    weight_factor[i,] <<- wf
+    ret_factor[i] <<- sum(wf * ret_pca[i+minwin+1,])
+  }
+  # Above is the back-test function
+  ret_factor <<- as.matrix(ret_factor)
+  rownames(ret_factor) <<- rownames(tail(data,nexpwin))
+  ret_factor <<- as.xts(ret_factor)
+  colnames(ret_factor) <<- "return"
+  ret_factor_acc <<- cumsum(ret_factor)
+  highchart(type = "stock") %>%
+    hc_add_series(ret_factor_acc$return, name = "Factor")
+}
+
+# Above is to define a function to mimick a factor
+
+factor_return(ret_pca,minwin = minwin,nexpwin = nexpwin,factor.no = 1)
+# This means mimick the first factor (who explained the most variance) 
