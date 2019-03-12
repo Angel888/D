@@ -26,6 +26,15 @@ SP <- SP%>%
          complete_cases = TRUE, 
          to = "2018-12-31")
 
+SP <- SP %>%
+  select(symbol, date, adjusted,close, shares_held) %>%
+  group_by(year(date), month(date), symbol) %>% 
+  summarize( adjusted = tail(adjusted, 1),
+             close = tail(close, 1),
+             # compute market cap
+             mktcap = tail(close * shares_held, 1),
+             date = tail(date,1))
+
 # Create matrix for variables
 # Matrices are much easier to manipulate than data frames
 # I hate data frames, they are like sins to coding
