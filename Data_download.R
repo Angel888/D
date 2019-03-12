@@ -1,40 +1,74 @@
-SP <- tq_index("sp500") %>% 
-  tq_get(get = "stock.prices", complete_cases = TRUE)
-
-BRK.B <- tq_get("BRK-B", get = "stock.prices", complete_cases = TRUE)
-BF.B <- tq_get("BF-B", get = "stock.prices", complete_cases = TRUE)
-
-SP <- SP %>%
-  select(symbol, date, adjusted) %>%
-  group_by(year(date),month(date),symbol) %>%
-  summarise(date = tail(date,1),
-            adjusted = tail(adjusted,1))
-
-sp500 <- SP %>% 
-  acast(date~symbol,value.var = "adjusted")
-
-tail(rownames(sp500),10)
-nrow(sp500)
-
-sp500return <- diff(log(sp500))
-# Calculate the Return of sp500
-drop <- which(is.na(colSums(sp500return)))
-sp500return <- sp500return[,-drop]
-
+library(tidyquant)
+library(reshape2)
+library(ggplot2)
 library(PerformanceAnalytics)
 library(PortfolioAnalytics)
-EW <- Return.portfolio(sp500return,rebalance_on = "months")
-# Create Equally Weighted Portfolio Return, a "xts" object
-
-EW_acc <- cumsum(EW)
-EW_mean <- mean(EW)
-EW_sd <- sd(EW)
-EW_median <- median(EW)
-EW_skewness <- skewness(EW)
-EW_kurtosis <- kurtosis(EW)
-sum(EW)
+library(highcharter)
 library(SharpeR)
+library(timetk)
+
+SP <- tq_index("sp500") 
+
+SP <- SP %>%
+  select(symbol, date, adjusted,close, shares_held) %>%
+  group_by(year(date), month(date), symbol) %>% 
+  summarize( adjusted = tail(adjusted, 1),
+             close = tail(close, 1),
+             # compute market cap
+             mktcap = tail(close * shares_held, 1),
+             date = tail(date,1))
+
+# Create matrix for variables
+# Matrices are much easier to manipulate than data frames
+# I hate data frames, they are like sins to coding
+
+sp500_mktcap <- SP %>%
+  acast(date ~ symbol,value.var = "mktcap")
+
+
+sp500_price <- SP %>% 
+  acast(date~symbol,value.var = "adjusted")
+
+
+nrow_sp500 <- nrow(sp500_price)
+
+sp500_intermediate_1 <- sp500_price[-1,]
+sp500_intermediate_2 <- sp500_price[-nrow_sp500,]
+
+sp500_simple_return <- (sp500_intermediate_1/sp500_intermediate_2 - 1)
+
+# drop NA terms
+
+drop <- which(is.na(colSums(sp500_simple_return)))
+
+
+sp500_simple_return <- sp500_simple_return[,-drop]
+sp500_mktcap <- sp500_mktcap[,-drop]
+
+# Calculate individual stock returns in S&P500
+
+sp500_continuous_return <- diff(log(sp500_price))
+sp500_continuous_return <- sp500_continuous_return[,-drop]
+
+# calculate the Equally Weighted Portfolio for S&P500
+
+sp500_EW <- Return.portfolio(sp500_continuous_return,
+                             rebalance_on = "months")
+
+# calculate the cumulative return for S&P500 EW portfolio
+
+sp500_EW_acc <- cumsum(sp500_EW)
+
+# calculate a series of requried stuff
+
+sp500_EW_mean <- mean(sp500_EW)
+sp500_EW_sd <- sd(sp500_EW)
+sp500_EW_median <- median(sp500_EW)
+sp500_EW_skewness <- skewness(sp500_EW)
+sp500_EW_kurtosis <- kurtosis(sp500_EW)
+
+# test the sharpe ratio of Equally Weighted Portfolio
 rfr <- 0.03/12
-EW_sharpe <- as.sr(EW, c0 = rfr, ope = 12)
-EW_sharpe_test <- sr_test(EW,alternative = "two.sided",ope = 12)
-# Sharpe Ratio stuff, more study is needed
+sp500_EW_sharpe <- as.sr(sp500_EW, c0 = rfr, ope = 12)
+sp500_EW_sharpe_test <- sr_test(sp500_EW,alternative = "two.sided",ope = 12)
+
