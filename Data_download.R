@@ -9,14 +9,22 @@ library(timetk)
 
 SP <- tq_index("sp500") 
 
-SP <- SP %>%
-  select(symbol, date, adjusted,close, shares_held) %>%
-  group_by(year(date), month(date), symbol) %>% 
-  summarize( adjusted = tail(adjusted, 1),
-             close = tail(close, 1),
-             # compute market cap
-             mktcap = tail(close * shares_held, 1),
-             date = tail(date,1))
+# R cannot correctly read the name of two stocks: BRK.B and BF.B
+
+# Substitute the correct name into the symbol lists
+
+x1 <- grep("BRK.B", SP$symbol)
+SP$symbol[x1] <- "BRK-B"
+
+x2 <- grep("BF.B", SP$symbol)
+SP$symbol[x2] <- "BF-B"
+
+# Get the prices of all stocks in SP500 index
+
+SP <- SP%>% 
+  tq_get(get = "stock.prices",
+         complete_cases = TRUE, 
+         to = "2018-12-31")
 
 # Create matrix for variables
 # Matrices are much easier to manipulate than data frames
