@@ -238,3 +238,12 @@ vm_weight_p1 <-
   highchart(type = "stock") %>%
   hc_add_series(weight_VM) %>%
   hc_title(text = "Weight of Volatility Managed Portfolio")
+
+
+# Further Notes, the right way to calculate realize volatility
+
+# It should be the sum of squared returns
+
+# But I do forget about it now.. Whatever
+
+# Maybe make further improvements after examination
